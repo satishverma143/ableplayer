@@ -109,11 +109,13 @@
 
 	// Returns the function used when the "Captions Off" button is clicked in the captions tooltip.
 	AblePlayer.prototype.getCaptionOffFunction = function () {
-
 		var thisObj = this;
 		return function () {
 			if (thisObj.player == 'youtube') {
 				thisObj.youTubePlayer.unloadModule(thisObj.ytCaptionModule);
+			}
+			else if (thisObj.usingVimeoCaptions) {
+        thisObj.vimeoPlayer.disableTextTrack();
 			}
 			thisObj.captionsOn = false;
 			thisObj.currentCaption = -1;
@@ -250,11 +252,11 @@
 		switch (pref) {
 
 			case 'prefCaptionsFont':
-				options[0] = this.tt.serif;
-				options[1] = this.tt.sans;
-				options[3] = this.tt.cursive;
-				options[4] = this.tt.fantasy;
-				options[2] = this.tt.monospace;
+				options[0] = ['serif',this.tt.serif];
+				options[1] = ['sans-serif',this.tt.sans];
+				options[2] = ['cursive',this.tt.cursive];
+				options[3] = ['fantasy',this.tt.fantasy];
+				options[4] = ['monospace',this.tt.monospace];
 				break;
 
 			case 'prefCaptionsColor':
@@ -324,6 +326,7 @@
 	}
 
 	AblePlayer.prototype.stylizeCaptions = function($element, pref) {
+
 		// $element is the jQuery element containing the captions
 		// this function handles stylizing of the sample caption text in the Prefs dialog
 		// plus the actual production captions
@@ -363,15 +366,15 @@
 				opacity = parseFloat(this.prefCaptionsOpacity) / 100.0;
 				$element.css({
 					'font-family': this.prefCaptionsFont,
-					'font-size': this.prefCaptionsSize,
 					'color': this.prefCaptionsColor,
 					'background-color': this.prefCaptionsBGColor,
 					'opacity': opacity
 				});
 				if ($element === this.$captionsDiv) {
 					if (typeof this.$captionsWrapper !== 'undefined') {
-						lineHeight = parseInt(this.prefCaptionsSize,10) + 25;
-						this.$captionsWrapper.css('line-height',lineHeight + '%');
+						this.$captionsWrapper.css({
+  						'font-size': this.prefCaptionsSize
+            });
 					}
 				}
 				if (this.prefCaptionsPosition === 'below') {

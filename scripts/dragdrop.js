@@ -42,44 +42,42 @@
 
 		// add event listener to toolbar to start and end drag
 		// other event listeners will be added when drag starts
-		$toolbar.on('mousedown', function(e) {
+		$toolbar.on('mousedown mouseup touchstart touchend', function(e) {
 			e.stopPropagation();
-			if (!thisObj.windowMenuClickRegistered) {
-				thisObj.windowMenuClickRegistered = true;
-				thisObj.startMouseX = e.pageX;
-				thisObj.startMouseY = e.pageY;
-				thisObj.dragDevice = 'mouse';
-				thisObj.startDrag(which, $window);
-			}
-			return false;
-		});
-		$toolbar.on('mouseup', function(e) {
-			e.stopPropagation();
-			if (thisObj.dragging && thisObj.dragDevice === 'mouse') {
-				thisObj.endDrag(which);
-			}
-			return false;
+			if (e.type === 'mousedown' || e.type === 'touchstart') {
+  			if (!thisObj.windowMenuClickRegistered) {
+	  			thisObj.windowMenuClickRegistered = true;
+          thisObj.startMouseX = e.pageX;
+          thisObj.startMouseY = e.pageY;
+          thisObj.dragDevice = 'mouse'; // ok to use this even if device is a touchpad
+          thisObj.startDrag(which, $window);
+			  }
+      }
+      else if (e.type === 'mouseup' || e.type === 'touchend') {
+        if (thisObj.dragging && thisObj.dragDevice === 'mouse') {
+				  thisObj.endDrag(which);
+			  }
+      }
+      return false;
 		});
 
 		// add event listeners for resizing
-		$resizeHandle.on('mousedown', function(e) {
-
+		$resizeHandle.on('mousedown mouseup touchstart touchend', function(e) {
 			e.stopPropagation();
-			if (!thisObj.windowMenuClickRegistered) {
-				thisObj.windowMenuClickRegistered = true;
-				thisObj.startMouseX = e.pageX;
-				thisObj.startMouseY = e.pageY;
-				thisObj.startResize(which, $window);
-				return false;
-			}
-		});
-
-		$resizeHandle.on('mouseup', function(e) {
-			e.stopPropagation();
-			if (thisObj.resizing) {
-				thisObj.endResize(which);
-			}
-			return false;
+			if (e.type === 'mousedown' || e.type === 'touchstart') {
+  			if (!thisObj.windowMenuClickRegistered) {
+	  			thisObj.windowMenuClickRegistered = true;
+          thisObj.startMouseX = e.pageX;
+          thisObj.startMouseY = e.pageY;
+          thisObj.startResize(which, $window);
+			  }
+      }
+      else if (e.type === 'mouseup' || e.type === 'touchend') {
+  			if (thisObj.resizing) {
+	  			thisObj.endResize(which);
+        }
+      }
+      return false;
 		});
 
 		// whenever a window is clicked, bring it to the foreground
@@ -95,7 +93,6 @@
 	};
 
 	AblePlayer.prototype.addWindowMenu = function(which, $window, windowName) {
-
 
 		var thisObj, $windowAlert, menuId, $newButton, $buttonIcon, buttonImgSrc, $buttonImg,
 			$buttonLabel, tooltipId, $tooltip, $popup,
@@ -190,7 +187,7 @@
 			this.$transcriptAlert = $windowAlert;
 			this.$transcriptPopupButton = $newButton;
 			this.$transcriptPopup = $popup;
-			this.$transcriptToolbar.append($windowAlert,$newButton,$tooltip,$popup);
+			this.$transcriptToolbar.prepend($windowAlert,$newButton,$tooltip,$popup);
 		}
 		else if (which === 'sign') {
 			this.$signAlert = $windowAlert;
@@ -201,7 +198,15 @@
 
 		// handle button click
 		$newButton.on('click mousedown keydown',function(e) {
-			e.stopPropagation();
+
+      if (thisObj.focusNotClick) {
+        return false;
+      }
+      if (thisObj.dragging) {
+				thisObj.dragKeys(which, e);
+				return false;
+		  }
+      e.stopPropagation();
 			if (!thisObj.windowMenuClickRegistered && !thisObj.finishingDrag) {
 				// don't set windowMenuClickRegistered yet; that happens in handler function
 				thisObj.handleWindowButtonClick(which, e);
@@ -325,6 +330,13 @@
 
 		thisObj = this;
 
+		if (this.focusNotClick) {
+  		// transcript or sign window has just opened,
+  		// and focus moved to the window button
+  		// ignore the keystroke that triggered the popup
+  		return false;
+		}
+
 		if (which === 'transcript') {
 			$windowPopup = this.$transcriptPopup;
 			$windowButton = this.$transcriptPopupButton;
@@ -343,15 +355,26 @@
 				this.windowMenuClickRegistered = true;
 			}
 			else if (e.which === 27) { // escape
-				// hide the popup menu
-				$windowPopup.hide('fast', function() {
-					// also reset the Boolean
-					thisObj.windowMenuClickRegistered = false;
-					// also restore menu items to their original state
-					$windowPopup.find('li').removeClass('able-focus').attr('tabindex','-1');
-					// also return focus to window options button
-					$windowButton.focus();
-				});
+        if ($windowPopup.is(':visible')) {
+  				// close the popup menu
+          $windowPopup.hide('fast', function() {
+					  // also reset the Boolean
+            thisObj.windowMenuClickRegistered = false;
+            // also restore menu items to their original state
+            $windowPopup.find('li').removeClass('able-focus').attr('tabindex','-1');
+            // also return focus to window options button
+            $windowButton.focus();
+				  });
+				}
+				else {
+  				// popup isn't open. Close the window
+          if (which === 'sign') {
+            this.handleSignToggle();
+          }
+          else if (which === 'transcript') {
+            this.handleTranscriptToggle();
+          }
+				}
 			}
 			else {
 				return false;
@@ -384,10 +407,9 @@
 
 	AblePlayer.prototype.handleMenuChoice = function (which, choice, e) {
 
-		var thisObj, $window, $windowPopup, $windowButton, resizeDialog, $thisRadio;
+		var thisObj, $window, $windowPopup, $windowButton, resizeDialog, width, height, $thisRadio;
 
 		thisObj = this;
-
 		if (which === 'transcript') {
 			$window = this.$transcriptArea;
 			$windowPopup = this.$transcriptPopup;
@@ -400,6 +422,7 @@
 			$windowButton = this.$signPopupButton;
 			resizeDialog = this.signResizeDialog;
 		}
+		this.$activeWindow = $window;
 
 		if (e.type === 'keydown') {
 			if (e.which === 27) { // escape
@@ -416,6 +439,9 @@
 			}
 			else {
 				// all other keys will be handled by upstream functions
+        if (choice !== 'close') {
+          this.$activeWindow = $window;
+		    }
 				return false;
 			}
 		}
@@ -430,8 +456,12 @@
 		if (choice !== 'close') {
 			$windowButton.focus();
 		}
-
 		if (choice === 'move') {
+
+      // temporarily add role="application" to activeWindow
+      // otherwise, screen readers incercept arrow keys and moving window will not work
+      this.$activeWindow.attr('role','application');
+
 			if (!this.showedAlert(which)) {
 				this.showAlert(this.tt.windowMoveAlert,which);
 				if (which === 'transcript') {
@@ -452,25 +482,37 @@
 		}
 		else if (choice == 'resize') {
 			// resize through the menu uses a form, not drag
+      var resizeFields = resizeDialog.getInputs();
+      if (resizeFields) {
+        // reset width and height values in form
+        resizeFields[0].value = $window.width();
+        resizeFields[1].value = $window.height();
+      }
 			resizeDialog.show();
 		}
 		else if (choice == 'close') {
 			// close window, place focus on corresponding button on controller bar
 			if (which === 'transcript') {
+        this.closingTranscript = true; // stopgrap to prevent double-firing of keypress
 				this.handleTranscriptToggle();
 			}
 			else if (which === 'sign') {
+        this.closingSign = true; // stopgrap to prevent double-firing of keypress
 				this.handleSignToggle();
 			}
 		}
 	};
 
 	AblePlayer.prototype.startDrag = function(which, $element) {
+
 		var thisObj, $windowPopup, zIndex, startPos, newX, newY;
+
 		thisObj = this;
 
-		this.$activeWindow = $element;
-		this.dragging = true;
+    if (!this.$activeWindow) {
+  		this.$activeWindow = $element;
+    }
+    this.dragging = true;
 
 		if (which === 'transcript') {
 			$windowPopup = this.$transcriptPopup;
@@ -524,8 +566,8 @@
 		}).focus();
 
 		// add device-specific event listeners
-		if (this.dragDevice === 'mouse') {
-			$(document).on('mousemove',function(e) {
+		if (this.dragDevice === 'mouse') { // might also be a touchpad
+			$(document).on('mousemove touchmove',function(e) {
 				if (thisObj.dragging) {
 					// calculate new top left based on current mouse position - offset
 					newX = e.pageX - thisObj.dragOffsetX;
@@ -591,6 +633,7 @@
 	};
 
 	AblePlayer.prototype.resetDraggedObject = function ( x, y) {
+
 		this.$activeWindow.css({
 			'left': x + 'px',
 			'top': y + 'px'
@@ -618,7 +661,8 @@
 
 	AblePlayer.prototype.endDrag = function(which) {
 
-		var $window, $windowPopup, $windowButton;
+		var thisObj, $window, $windowPopup, $windowButton;
+    thisObj = this;
 
 		if (which === 'transcript') {
 			$windowPopup = this.$transcriptPopup;
@@ -629,8 +673,11 @@
 			$windowButton = this.$signPopupButton;
 		}
 
-		$(document).off('mousemove mouseup');
+		$(document).off('mousemove mouseup touchmove touchup');
 		this.$activeWindow.off('keydown').removeClass('able-drag');
+		// restore activeWindow role from 'application' to 'dialog'
+		this.$activeWindow.attr('role','dialog');
+		this.$activeWindow = null;
 
 		if (this.dragDevice === 'keyboard') {
 			$windowButton.focus();
@@ -647,13 +694,12 @@
 		// Boolean to stop stray events from firing
 		this.windowMenuClickRegistered = false;
 		this.finishingDrag = true; // will be reset after window click event
-
 		// finishingDrag should e reset after window click event,
 		// which is triggered automatically after mouseup
 		// However, in case that's not reliable in some browsers
 		// need to ensure this gets cancelled
 		setTimeout(function() {
-			this.finishingDrag = false;
+			thisObj.finishingDrag = false;
 		}, 100);
 	};
 
@@ -681,8 +727,8 @@
 	AblePlayer.prototype.startResize = function(which, $element) {
 
 		var thisObj, $windowPopup, zIndex, startPos, newWidth, newHeight;
-		thisObj = this;
 
+		thisObj = this;
 		this.$activeWindow = $element;
 		this.resizing = true;
 
@@ -706,7 +752,7 @@
 		this.dragStartHeight = this.$activeWindow.height();
 
 		// add event listeners
-		$(document).on('mousemove',function(e) {
+		$(document).on('mousemove touchmove',function(e) {
 			if (thisObj.resizing) {
 				// calculate new width and height based on changes to mouse position
 				newWidth = thisObj.dragStartWidth + (e.pageX - thisObj.startMouseX);
@@ -730,9 +776,8 @@
 			$windowButton = this.$signPopupButton;
 		}
 
-		$(document).off('mousemove mouseup');
+		$(document).off('mousemove mouseup touchmove touchup');
 		this.$activeWindow.off('keydown');
-
 		$windowButton.show().focus();
 		this.resizing = false;
 		this.$activeWindow.removeClass('able-resize');

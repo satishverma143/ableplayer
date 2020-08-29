@@ -10,20 +10,20 @@ Features
 
 -   Supports both audio and video.
 -   Supports either a single audio track or an entire playlist.
--   A full set of player controls that are keyboard-accessible, properly labeled for screen reader users, and controllable by speech recognition users.
--   Customizable keyboard shortcuts that enable the player to be operated from anywhere on the web page (unless there are multiple instances of the player on a given page; then the player must have focus for keyboard shortcuts to work).
--   High contrast, scalable controls that remain visible in Windows High Contrast mode, plus an easy-to-see focus indicator so keyboard users can easily tell which control currently has focus.
--   Support for closed captions and subtitles in Web Video Timed Text (WebVTT) format, the standard format recommended by the HTML5 specification.
--   Support for chapters, also using WebVTT. Chapters are specific landing points in the video, allowing video content to have structure and be more easily navigated.
--   Support for text-based audio description, also using WebVTT. At designated times, the description text is read aloud by screen readers.  Users can optionally set their player to pause when audio description starts in order to avoid conflicts between the description and program audio.
--   Support for audio description as a separate video. When two videos are available (one with description and one without), both can be delivered together using the same player and users can toggle between the versions.
--   Support for adjustable playback rate. Users who need to slow down the video in order to better process and understand its content can do so; and users who need to speed up the video in order to maintain better focus can do so.
--   An interactive transcript feature, built from the WebVTT chapter, caption and description files as the page is loaded. Users can click anywhere in the transcript to start playing the video (or audio) at that point.  Keyboard users can also choose to keyboard-enable the transcript, so they can tab through its content one caption at a time and press enter to play the media at the desired point.
--   Automatic text highlighting within the transcript as the media plays. This feature is enabled by default but can be turned off if users find it distracting.
--   Support for playing YouTube and Vimeo videos within the Able Player chrome.
--   Customizable caption display. Users can control the font style, size, and color of caption text; plus background color and transparency; all from the Preferences dialog. They can also choose to position captions *below* the video instead of the default position (an semi-transparent overlay).
--   Fallback support (see section on **Fallback** for details).
--   Extensive customization. Many of the features described above are controlled by user preferences. This is based on the belief that every user has different needs and there are no one-size-fits-all solutions. This is the heart of universal design.
+-   Includes a full set of player controls that are keyboard-accessible, properly labeled for screen reader users, and controllable by speech recognition users.
+-   Includes customizable keyboard shortcuts that enable the player to be operated from anywhere on the web page (unless there are multiple instances of the player on a given page; then the player must have focus for keyboard shortcuts to work).
+-   Features high contrast, scalable controls that remain visible in Windows High Contrast mode, plus an easy-to-see focus indicator so keyboard users can easily tell which control currently has focus.
+-   Supports closed captions and subtitles in Web Video Timed Text (WebVTT) format, the standard format recommended by the HTML5 specification.
+-   Supports chapters, also using WebVTT. Chapters are specific landing points in the video, allowing video content to have structure and be more easily navigated.
+-   Supports text-based audio description, also using WebVTT. At designated times, the description text is read aloud by browsers, or by screen readers for browsers that don't support the Web Speech API. Users can optionally set their player to pause when audio description starts in order to avoid conflicts between the description and program audio.
+-   Supports audio description as a separate video. When two videos are available (one with description and one without), both can be delivered together using the same player and users can toggle between the versions.
+-   Supports adjustable playback rate. Users who need to slow down the video in order to better process and understand its content can do so; and users who need to speed up the video in order to maintain better focus can do so.
+-   Includes an interactive transcript feature, built from the WebVTT chapter, caption and description files as the page is loaded. Users can click anywhere in the transcript to start playing the video (or audio) at that point.  Keyboard users can also choose to keyboard-enable the transcript, so they can tab through its content one caption at a time and press enter to play the media at the desired point.
+-   Features automatic text highlighting within the transcript as the media plays. This feature is enabled by default but can be turned off if users find it distracting.
+-   Supports YouTube and Vimeo videos.
+-   Provides users with the ability to customize the display of captions and subtitles. Users can control the font style, size, and color of caption text; plus background color and transparency; all from the Preferences dialog. They can also choose to position captions *below* the video instead of the default position (an semi-transparent overlay).
+-   Supports fallback content if the media cannot be played (see section on **Fallback** for details).
+-   Includes extensive customization options. Many of the features described above are controlled by user preferences. This is based on the belief that every user has different needs and there are no one-size-fits-all solutions. This is the heart of universal design.
 
 Supported Languages
 -------------------
@@ -57,11 +57,11 @@ There are many ways to contribute to Able Player, and we welcome and appreciate 
 Compatibility
 -------------
 
-*Able Player* has been tested with the following browsers and assistive
-technologies.
+*Able Player* has been tested with the following browsers.
 
 -   Firefox 3.x and higher
 -   Internet Explorer 10 and higher
+-   Microsoft Edge all versions 
 -   Google Chrome 7.0 and higher
 -   Opera 10.63 and higher
 -   Safari 5.0 on Mac OS X
@@ -138,7 +138,6 @@ to all use cases, both audio and video.
 
 ```HTML
 <!-- Dependencies -->
-<script src="thirdparty/modernizr.custom.js"></script>
 <script src="//ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
 <script src="thirdparty/js.cookie.js"></script>
 
@@ -212,11 +211,13 @@ The following attributes are supported on both the `<audio>` and `<video>` eleme
 -   **data-heading-level** - optional; Able Player injects an off-screen HTML heading "Media Player" (or localized equivalent) at the top of the player so screen reader users can easily find the player. It automatically assigns a heading level that is one level deeper than the closest parent heading. This attribute can be used to manually set the heading level, rather than relying on Able Player to assign it automatically. Valid values are 1 through 6. A value of 0 is also supported, and instructs Able Player to not inject a heading at all. The latter should be used only if the web page already includes a heading immediately prior to the media player.
 -   **data-hide-controls** - optional; set to "true" to hide controls during playback. Controls are visibly hidden but still accessible to assistive technologies. Controls reappear if user presses any key or moves the mouse over the video player region.
 -   **data-icon-type** - optional; "svg", "font" or "image"; "svg" is the default with automatic fallback to "font" unless either (a) the browser doesn't support icon fonts or (b) the user has a custom style sheet that may impact the display of icon fonts; in either case falls back to images. Should generally leave as is unless testing the fallback.
+-   **data-skin** - optional; "legacy (default) or "2020". The default skin has two rows of controls, with the seekbar positioned in available space within the top row. The "2020" skin, introduced in version 4.2, has all buttons in one row beneath a full-width seekbar. 
 -   **data-speed-icons** - optional; "animals" (default) or "arrows". The default setting uses a turtle icon for *slower* and a rabbit icon for *faster*. Setting this to "arrows" uses the original Able Player icons (prior to version 3.5), arrows pointing up for *faster* and down for *slower*.
 -   **data-start-time** - optional; time at which you want the audio to start playing (in seconds)
+-   **data-steno-mode** - optional; "true" to allow keyboard shortcuts for controlling the player remotely within textarea form fields, e.g., for transcribing media content. 
 -   **data-volume** - optional; set the default volume (0 to 10; default is 7 to avoid overpowering screen reader audio)
 -   **data-seek-interval** - optional; interval (in seconds) of forward and rewind buttons. By default, seek interval is intelligently calculated based on  duration of the media.
--   **data-show-now-playing** - optional; "true" or "false" to include "Selected track" section within player; only applies when a playlist is present
+-   **data-show-now-playing** - optional; "true" to include "Selected track" section within player; only applies when a playlist is present
 
 #### Language
 
@@ -342,10 +343,10 @@ added using one of two methods.
 The first method is the same as closed captions, a `<track>` element, with
 kind="descriptions". This points to a WebVTT file, which is essentially
 the same as a closed caption file, but its contents are description text
-rather than captions. With this method, description text is written to a
-container that has ARIA role="alert". Supporting screen readers
-automatically announce the new text as soon as it is written to the
-page.
+rather than captions. With this method, description text is read aloud by 
+browsers that support the [Web Speech API][]; otherwise it's written to an  
+ARIA live region, so supporting screen readers will automatically announce 
+the new text as soon as it is written to the page.
 
 The second method is to produce a separate video with description mixed
 in. If multiple video sources are already provided (e.g., an MP4 and
@@ -361,18 +362,28 @@ controller.
 If descriptions are available using either of the above methods, a
 Description toggle button appears on the controller (represented by the
 universal Description symbol, the letter "D"). How descriptions are
-ultimately delivered depends on which of the above methods is used, and
-on user preference. If a user prefers text-based description announced
-by their screen reader, that’s what they’ll get. If they prefer an
-alternate video with description mixed in, that’s what they’ll get. See
-the section below on *User Preferences* for additional information about
-preferences.
+ultimately delivered depends on which of the above methods is used. 
+
+If *both* methods are used, description will be delivered using the separate  
+described version of the video. However, the WebVTT file will be used to 
+(a) display the description text visibly (if users have selected this option in their 
+preferences), and (b) incorporate the description text into the 
+auto-generated interactive transcript. Therefore, it is important for the 
+WebVTT description file to be accurately synchronized with the separate 
+described version of the video.  
 
 In some applications, text-based descriptions might be a required
 part of the interface (e.g., if video pauses so users can interact with
 HTML overlays; text-based description could be used in this context to provide
 additional instructions for screen reader users). In such cases the Descriptions
 button can be eliminated from the controller with **data-use-descriptions-button="false"**.
+
+In other applications, a WebVTT descriptions file might be used solely for the purposes 
+of displaying visible description text or incorporating description text into the 
+auto-generated transcript, and the WebVTT description text is not intended to be read aloud 
+by screen readers or browsers  (for example, if the sole video source is a described video).
+In such cases, use **data-descriptions-audible="false"** to prevent browsers and screen readers 
+from announcing changes to the description text. 
 
 #### Sign language
 
@@ -390,12 +401,11 @@ available, add a **data-sign-src** attribute to the `<source>` element for
 that video. The value of this attribute is a path pointing to the
 sign language version of the video. If a sign language version is available,
 a sign language button will be added to the media controller.
-This button will toggle the display of a secondary window in which
-the sign language video will appear.
+This button will toggle the display of a pop-up window in which
+the sign language video will appear. Users can move or resize the pop-up window 
+with either mouse or keyboard.   
 
-This is an experimental feature and a work in progress. Ultimately
-the intent is for the user to have full control of the size and position
-of the sign language video.
+Unfortunately this feature is not currently supported on iOS. 
 
 Setup Step 4: Review User-Defined Variables in *ableplayer.js*
 --------------------------------------------------------------
@@ -617,12 +627,11 @@ on the `<video>` element. The value of this attribute must be the Vimeo ID
 of the described version. If users turn on the Description button on their player controller,
 the described version of the video will be loaded instead of the non-described version.
 
-Note that Vimeo currently has a few major limitations:  
+Note that Vimeo currently has some limitations:  
 
--   A Plus, Pro or Business account is required in order to hide Vimeo's default controller. If videos are hosted on a free account, the Vimeo controller and Able Player controller are both shown. The Vimeo controller disappears temporarily after playback begins, but until then having both players present is extremely cluttered and confusing
--   Hiding Vimeo's playback controls (as per the previous item) also hides captions and subtitles. Therefore the only way to include captions and subtitles is to host them locally and reference them with a &lt;track&gt; element. This is necessary anyway in order to have an interactive transcript, since Vimeo does not expose its caption data in a way that would enable Able Player to repurpose captions into a transcript.
--   A Pro or Business account is required in order to change playback rate (with faster and slower buttons). Even with a Pro or Business account, this feature is off by default and "Speed controls" need to be enabled within the settings for each video.
-
+-   A Plus, Pro or Business account is required in order to hide Vimeo's default controller. If videos are hosted on a free account, the Vimeo controller and Able Player controller are both shown. The Vimeo controller disappears temporarily after playback begins, but until then having both players present is cluttered and confusing. 
+-   A Pro or Business account is required in order to change playback rate (with faster and slower buttons). This functionality is *not* supported with a Plus account. Even with a Pro or Business account, this feature is off by default and "Speed controls" need to be enabled within the settings for each video.
+-   Able Player can display captions if they're hosted on Vimeo. However, if the user changes their caption display preferences in Able Player, that has no effect on the Vimeo captions. Also, Able Player is unable to auto-generate an interactive transcript if captions are hosted on Vimeo. For captions that support user display preferences and that can be repurposed as an interactive transcript, captions and subtitles must be stored locally and referenced with a &lt;track&gt; element. If captions and subtitles are provided both on Vimeo and locally, the local captions will take precedence in order to provide full functionality. 
 
 MIME Types
 ----------
@@ -667,6 +676,8 @@ player from anywhere on the web page, as follows:
 -   **s** = Stop
 -   **r** = Rewind
 -   **f** = Forward
+-   **b** = Back (previous track in playlist)
+-   **n** = Next (next track in playlist) 
 -   **c** = Captions
 -   **d** = Description
 -   **m** = Mute on/off
@@ -740,7 +751,7 @@ at the University of Washington, with financial support from the National Scienc
 [Committee on Institutional Cooperation][] (CIC).
 - Turtle and rabbit icons (available as optional alternatives for the speed buttons) are provided courtesy of [Icons8][].
 - Sample video tracks are provided courtesy of [The DO-IT Center][] at the University of Washington. Additional videos are available on the [DO-IT Video][] website, which uses Able Player.
-- Sample audio tracks are provided courtesy of Terrill Thompson from his album [Flavors, by Flow Theory][].
+- Sample audio tracks feature songs by Terrill Thompson, Able Player's creator and lead developer. Check out [Terrill's music site] for more listening, and to support his work.
 
 
   [AccessComputing]: http://washington.edu/accesscomputing
@@ -765,9 +776,11 @@ at the University of Washington, with financial support from the National Scienc
   [Modernizr]: http://modernizr.com/
   [npm]: https://www.npmjs.com/
   [Signing Books for the Deaf]: http://www.sign-lang.uni-hamburg.de/signingbooks/
+  [Terrill's music site]: https://terrillthompson.com/music
   [The DO-IT Center]: http://washington.edu/doit
   [Video Demo #7]: demos/video7.html
   [WebVTT validator]: https://quuz.org/webvtt/
   [WebAIM’s 2017 Screen Reader User Survey]: https://webaim.org/projects/screenreadersurvey7/#browsers
   [WebVTT]: https://w3c.github.io/webvtt/
+  [Web Speech API]: https://developer.mozilla.org/en-US/docs/Web/API/Web_Speech_API
   [YouTube's Terms of Service]: https://developers.google.com/youtube/terms/required-minimum-functionality#overlays-and-frames

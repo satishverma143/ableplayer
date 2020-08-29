@@ -59,7 +59,6 @@
 		});
 		this.$volumeSlider.append(this.$volumeSliderTooltip,this.$volumeSliderTrack,this.$volumeAlert,this.$volumeHelp)
 		$div.append(this.$volumeSlider);
-
 		this.refreshVolumeSlider(this.volume);
 
 		// add event listeners
@@ -89,6 +88,7 @@
 		});
 
 		this.$volumeSliderHead.on('keydown',function (e) {
+
 			// Left arrow or down arrow
 			if (e.which === 37 || e.which === 40) {
 				thisObj.handleVolume('down');
@@ -97,14 +97,17 @@
 			else if (e.which === 39 || e.which === 38) {
 				thisObj.handleVolume('up');
 			}
-			// Escape key or Enter key
-			else if (e.which === 27 || e.which === 13) {
+			// Escape key or Enter key or Tab key
+			else if (e.which === 27 || e.which === 13 || e.which === 9) {
 				// close popup
 				if (thisObj.$volumeSlider.is(':visible')) {
+  				thisObj.closingVolume = true; // stopgap
 					thisObj.hideVolumePopup();
 				}
 				else {
-					thisObj.showVolumePopup();
+  				if (!thisObj.closingVolume) {
+  					thisObj.showVolumePopup();
+  				}
 				}
 			}
 			else {
@@ -126,24 +129,29 @@
 		trackOnTop = this.volumeTrackHeight - trackOnHeight;
 		headTop = trackOnTop - this.volumeHeadHeight;
 
-		this.$volumeSliderTrackOn.css({
-			'height': trackOnHeight + 'px',
-			'top': trackOnTop + 'px'
-		});
-		this.$volumeSliderHead.attr({
-			'aria-valuenow': volume,
-			'aria-valuetext': volumePctText
-		});
-		this.$volumeSliderHead.css({
-			'top': headTop + 'px'
-		});
-		this.$volumeAlert.text(volumePct + '%');
-
+    if (this.$volumeSliderTrackOn) {
+  		this.$volumeSliderTrackOn.css({
+	  		'height': trackOnHeight + 'px',
+        'top': trackOnTop + 'px'
+		  });
+		}
+		if (this.$volumeSliderHead) {
+      this.$volumeSliderHead.attr({
+			  'aria-valuenow': volume,
+        'aria-valuetext': volumePctText
+		  });
+      this.$volumeSliderHead.css({
+			  'top': headTop + 'px'
+		  });
+		}
+		if (this.$volumeAlert) {
+  		this.$volumeAlert.text(volumePct + '%');
+    }
 	};
 
 	AblePlayer.prototype.refreshVolumeButton = function(volume) {
 
-		var volumeName, volumePct, volumeLabel, volumeIconClass, volumeImg;
+		var volumeName, volumePct, volumeLabel, volumeIconClass, volumeImg, newSvgData;
 
 		volumeName = this.getVolumeName(volume);
 		volumePct = (volume/10) * 100;
@@ -154,10 +162,18 @@
 			this.$volumeButton.find('span').first().removeClass().addClass(volumeIconClass);
 			this.$volumeButton.find('span.able-clipped').text(volumeLabel);
 		}
-		else {
+		else if (this.iconType === 'image') {
 			volumeImg = this.imgPath + 'volume-' + volumeName + '.png';
 			this.$volumeButton.find('img').attr('src',volumeImg);
 		}
+		else if (this.iconType === 'svg') {
+  		if (volumeName !== 'mute') {
+    		volumeName = 'volume-' + volumeName;
+      }
+		  newSvgData = this.getSvgData(volumeName);
+      this.$volumeButton.find('svg').attr('viewBox',newSvgData[0]);
+      this.$volumeButton.find('path').attr('d',newSvgData[1]);
+    }
 	};
 
 	AblePlayer.prototype.moveVolumeHead = function(y) {
@@ -221,7 +237,9 @@
 				this.hideVolumePopup();
 			}
 			else {
-				this.showVolumePopup();
+        if (!this.closingVolume) {
+  				this.showVolumePopup();
+        }
 			}
 			return;
 		}
@@ -255,6 +273,7 @@
 	};
 
 	AblePlayer.prototype.handleMute = function() {
+
 		if (this.isMuted()) {
 			this.setMute(false);
 		}
@@ -274,9 +293,16 @@
 
 	AblePlayer.prototype.hideVolumePopup = function() {
 
+    var thisObj = this;
+
 		this.$volumeSlider.hide().attr('aria-hidden','true');
 		this.$volumeSliderHead.attr('tabindex','-1');
 		this.$volumeButton.attr('aria-expanded','false').focus();
+    // wait a second before resetting stopgap var
+    // otherwise the keypress used to close volume popup will trigger the volume button
+    setTimeout(function() {
+      thisObj.closingVolume = false;
+    }, 1000);
 	};
 
 	AblePlayer.prototype.isMuted = function () {

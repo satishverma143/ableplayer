@@ -93,7 +93,7 @@
 			e.stopPropagation();
 		});
 
-		$('body > *').not('.able-modal-overlay').not('.able-modal-dialog').attr('aria-hidden', 'false');
+		$('body > *').not('.able-modal-overlay').not('.able-modal-dialog').removeAttr('aria-hidden');
 	};
 
 	AccessibleDialog.prototype.show = function () {
@@ -127,10 +127,8 @@
 		}
 		var thisObj = this;
 		setTimeout(function () {
-			// originally set focus on the first focusable element
-			// thisObj.modal.find('button.modalCloseButton').first().focus();
-			// but setting focus on dialog seems to provide more reliable access to ALL content within
-			thisObj.modal.focus();
+			// set focus on the first focusable element
+			thisObj.modal.find('button.modalCloseButton').first().focus();
 		}, 300);
 	};
 
@@ -140,8 +138,19 @@
 		}
 		this.modal.css('display', 'none');
 		this.modal.attr('aria-hidden', 'true');
-		$('body > *').not('.able-modal-overlay').not('.able-modal-dialog').attr('aria-hidden', 'false');
+		$('body > *').not('.able-modal-overlay').not('.able-modal-dialog').removeAttr('aria-hidden');
 
 		this.focusedElementBeforeModal.focus();
 	};
+
+  AccessibleDialog.prototype.getInputs = function () {
+
+    // return an array of input elements within this dialog
+    if (this.modal) {
+		  var inputs = this.modal.find('input');
+			return inputs;
+		}
+		return false;
+	};
+
 })(jQuery);

@@ -34,11 +34,15 @@
 /*global $, jQuery */
 "use strict";
 
+// maintain an array of Able Player instances for use globally (e.g., for keeping prefs in sync)
+var AblePlayerInstances = [];
+
 (function ($) {
 	$(document).ready(function () {
+
 		$('video, audio').each(function (index, element) {
 			if ($(element).data('able-player') !== undefined) {
-				new AblePlayer($(this),$(element));
+				AblePlayerInstances.push(new AblePlayer($(this),$(element)));
 			}
 		});
 	});
@@ -48,7 +52,6 @@
 		AblePlayer.youtubeIframeAPIReady = true;
 		$('body').trigger('youtubeIframeAPIReady', []);
 	};
-
 	// If there is only one player on the page, dispatch global keydown events to it
 	// Otherwise, keydowwn events are handled locally (see event.js > handleEventListeners())
 	$(window).keydown(function(e) {
@@ -61,10 +64,8 @@
 	// Parameters are:
 	// media - jQuery selector or element identifying the media.
 	window.AblePlayer = function(media) {
-
 		// Keep track of the last player created for use with global events.
 		AblePlayer.lastCreated = this;
-
 		this.media = media;
 		if ($(media).length === 0) {
 			this.provideFallback();
@@ -168,6 +169,20 @@
 			this.useDescriptionsButton = true;
 		}
 
+		// Silence audio description
+		// set to "false" if the sole purposes of the WebVTT descriptions file
+		// is to display description text visibly and to integrate it into the transcript
+		if ($(media).data('descriptions-audible') !== undefined && $(media).data('descriptions-audible') === false) {
+			this.exposeTextDescriptions = false;
+		}
+		else if ($(media).data('description-audible') !== undefined && $(media).data('description-audible') === false) {
+  		// support both singular and plural spelling of attribute
+			this.exposeTextDescriptions = false;
+		}
+		else {
+			this.exposeTextDescriptions = true;
+		}
+
 		// Headings
 		// By default, an off-screen heading is automatically added to the top of the media player
 		// It is intelligently assigned a heading level based on context, via misc.js > getNextHeadingLevel()
@@ -189,6 +204,19 @@
 		// 3. "popup" - Automatically generated, written to a draggable, resizable popup window that can be toggled on/off with a button
 		// If data-include-transcript="false", there is no "popup" transcript
 
+		if ($(media).data('transcript-div') !== undefined && $(media).data('transcript-div') !== "") {
+		  this.transcriptDivLocation = $(media).data('transcript-div');
+		}
+		else {
+  		this.transcriptDivLocation = null;
+    }
+		if ($(media).data('include-transcript') !== undefined && $(media).data('include-transcript') === false) {
+  		this.hideTranscriptButton = true;
+    }
+    else {
+      this.hideTranscriptButton = null;
+    }
+
 		this.transcriptType = null;
 		if ($(media).data('transcript-src') !== undefined) {
 			this.transcriptSrc = $(media).data('transcript-src');
@@ -198,14 +226,8 @@
 		}
 		else if ($(media).find('track[kind="captions"], track[kind="subtitles"]').length > 0) {
 			// required tracks are present. COULD automatically generate a transcript
-			if ($(media).data('transcript-div') !== undefined && $(media).data('transcript-div') !== "") {
-				this.transcriptDivLocation = $(media).data('transcript-div');
+      if (this.transcriptDivLocation) {
 				this.transcriptType = 'external';
-			}
-			else if ($(media).data('include-transcript') !== undefined) {
-				if ($(media).data('include-transcript') !== false) {
-					this.transcriptType = 'popup';
-				}
 			}
 			else {
 				this.transcriptType = 'popup';
@@ -258,18 +280,6 @@
 			this.defaultChapter = null;
 		}
 
-		// Previous/Next buttons
-		// valid values of data-prevnext-unit are 'playlist' and 'chapter'; will also accept 'chapters'
-		if ($(media).data('prevnext-unit') === 'chapter' || $(media).data('prevnext-unit') === 'chapters') {
-			this.prevNextUnit = 'chapter';
-		}
-		else if ($(media).data('prevnext-unit') === 'playlist') {
-			this.prevNextUnit = 'playlist';
-		}
-		else {
-			this.prevNextUnit = false;
-		}
-
 		// Slower/Faster buttons
 		// valid values of data-speed-icons are 'animals' (default) and 'arrows'
 		// 'animals' uses turtle and rabbit; 'arrows' uses up/down arrows
@@ -313,6 +323,17 @@
 			this.vimeoDescId = $(media).data('vimeo-desc-id');
 		}
 
+		// Skin
+		// valid values of data-skin are:
+		// 'legacy' (default), two rows of controls; seekbar positioned in available space within top row
+		// '2020', all buttons in one row beneath a full-width seekbar
+		if ($(media).data('skin') == '2020') {
+			this.skin = '2020';
+		}
+		else {
+			this.skin = 'legacy';
+		}
+
 		// Icon type
 		// By default, AblePlayer 3.0.33 and higher uses SVG icons for the player controls
 		// Fallback for browsers that don't support SVG is scalable icomoon fonts
@@ -340,7 +361,7 @@
 		// Unless specified with data-seek-interval, the default value is re-calculated in initialize.js > setSeekInterval();
 		// Calculation attempts to intelligently assign a reasonable interval based on media length
 		this.defaultSeekInterval = 10;
-		this.useFixedSeekInterval = false;
+		this.useFixedSeekInterval = false; // will change to true if media has valid data-seek-interval attribute
 		if ($(media).data('seek-interval') !== undefined && $(media).data('seek-interval') !== "") {
 			var seekInterval = $(media).data('seek-interval');
 			if (/^[1-9][0-9]*$/.test(seekInterval)) { // must be a whole number greater than 0
@@ -440,6 +461,16 @@
 		else {
 			this.hideControls = false;
 			this.hideControlsOriginal = false;
+		}
+
+		// Steno mode
+		// Enable support for Able Player keyboard shortcuts in textaarea fields
+		// so users can control the player while transcribing
+		if ($(media).data('steno-mode') !== undefined && $(media).data('steno-mode') !== false) {
+			this.stenoMode = true;
+		}
+		else {
+			this.stenoMode = false;
 		}
 
 		// Define built-in variables that CANNOT be overridden with HTML attributes

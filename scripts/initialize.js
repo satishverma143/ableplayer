@@ -11,6 +11,7 @@
 		this.initializing = false; // will change to true temporarily while initPlayer() is processing
 		this.cueingPlaylistItems = false; // will change to true temporarily while cueing next playlist item
 		this.okToPlay = false; // will change to true if conditions are acceptible for automatic playback after media loads
+		this.buttonWithFocus = null; // will change to 'previous' or 'next' if user clicks either of those buttons
 
 		this.getUserAgent();
 		this.setIconColor();
@@ -221,11 +222,12 @@
 				break;
 
 			case 'mute':
+			case 'volume-mute':
 				svg[0] = '0 0 20 20';
 				svg[1] = 'M7.839 1.536c0.501-0.501 0.911-0.331 0.911 0.378v16.172c0 0.709-0.41 0.879-0.911 0.378l-4.714-4.713h-3.125v-7.5h3.125l4.714-4.714zM18.75 12.093v1.657h-1.657l-2.093-2.093-2.093 2.093h-1.657v-1.657l2.093-2.093-2.093-2.093v-1.657h1.657l2.093 2.093 2.093-2.093h1.657v1.657l-2.093 2.093z';
 				break;
 
-			case 'volume-mute':
+			case 'volume-soft':
 				svg[0] = '0 0 20 20';
 				svg[1] = 'M10.723 14.473c-0.24 0-0.48-0.092-0.663-0.275-0.366-0.366-0.366-0.96 0-1.326 1.584-1.584 1.584-4.161 0-5.745-0.366-0.366-0.366-0.96 0-1.326s0.96-0.366 1.326 0c2.315 2.315 2.315 6.082 0 8.397-0.183 0.183-0.423 0.275-0.663 0.275zM7.839 1.536c0.501-0.501 0.911-0.331 0.911 0.378v16.172c0 0.709-0.41 0.879-0.911 0.378l-4.714-4.713h-3.125v-7.5h3.125l4.714-4.714z';
 				break;
@@ -304,7 +306,6 @@
 		// Bootstrap from this.media possibly being an ID or other selector.
 		this.$media = $(this.media).first();
 		this.media = this.$media[0];
-
 		// Set media type to 'audio' or 'video'; this determines some of the behavior of player creation.
 		if (this.$media.is('audio')) {
 			this.mediaType = 'audio';
@@ -562,9 +563,7 @@
 
 		this.initSignLanguage();
 
-// 	thisObj.initializing = true;
-		this.initPlayer().then(function() { // initPlayer success
-//		thisObj.initializing = false;
+		this.initPlayer().then(function() {
 
 			 thisObj.setupTracks().then(function() {
 
@@ -572,58 +571,66 @@
 
 					thisObj.setupTranscript().then(function() {
 
-						if (thisObj.Volume) {
-								thisObj.setMute(false);
-							}
-						thisObj.setFullscreen(false);
-						thisObj.setVolume(thisObj.defaultVolume);
+            thisObj.getMediaTimes().then(function(mediaTimes) {
 
-						if (thisObj.transcriptType) {
-							thisObj.addTranscriptAreaEvents();
-							thisObj.updateTranscript();
-						}
-						if (thisObj.mediaType === 'video') {
-							thisObj.initDescription();
-						}
-						if (thisObj.captions.length) {
-							thisObj.initDefaultCaption();
-						}
+              thisObj.duration = mediaTimes['duration'];
+              thisObj.elapsed = mediaTimes['elapsed'];
 
-						// setMediaAttributes() sets textTrack.mode to 'disabled' for all tracks
-						// This tells browsers to ignore the text tracks so Able Player can handle them
-						// However, timing is critical as browsers - especially Safari - tend to ignore this request
-						// unless it's sent late in the intialization process.
-						// If browsers ignore the request, the result is redundant captions
-						thisObj.setMediaAttributes();
-						thisObj.addControls();
-						thisObj.addEventListeners();
+              thisObj.setFullscreen(false);
 
-						// inject each of the hidden forms that will be accessed from the Preferences popup menu
-						prefsGroups = thisObj.getPreferencesGroups();
-						for (i = 0; i < prefsGroups.length; i++) {
-							thisObj.injectPrefsForm(prefsGroups[i]);
-							 }
-						thisObj.setupPopups();
-						thisObj.updateCaption();
-						thisObj.injectVTS();
-						if (thisObj.chaptersDivLocation) {
-							thisObj.populateChaptersDiv();
-							 }
-						thisObj.showSearchResults();
+              if (typeof thisObj.volume === 'undefined') {
+  						  thisObj.volume = thisObj.defaultVolume;
+						  }
+						  if (thisObj.volume) {
+                thisObj.setVolume(thisObj.volume);
+              }
 
-						// Go ahead and load media, without user requesting it
-						// Normally, we wait until user clicks play, rather than unnecessarily consume their bandwidth
-						// Exceptions are if the video is intended to autostart or if running on iOS (a workaround for iOS issues)
-						// TODO: Confirm that this is still necessary with iOS (this would added early, & I don't remember what the issues were)
-						if (thisObj.player === 'html5' &&
-								(thisObj.isIOS() || thisObj.startTime > 0 || thisObj.autoplay || thisObj.okToPlay)) {
-							thisObj.$media[0].load();
-						}
-						// refreshControls is called twice building/initializing the player
-						// this is the second. Best to pause a bit before executing, to be sure all prior steps are complete
-						setTimeout(function() {
-							thisObj.refreshControls('init');
-						},100);
+              if (thisObj.transcriptType) {
+							  thisObj.addTranscriptAreaEvents();
+                thisObj.updateTranscript();
+						  }
+              if (thisObj.mediaType === 'video') {
+							  thisObj.initDescription();
+						  }
+              if (thisObj.captions.length) {
+							  thisObj.initDefaultCaption();
+						  }
+
+              // setMediaAttributes() sets textTrack.mode to 'disabled' for all tracks
+              // This tells browsers to ignore the text tracks so Able Player can handle them
+              // However, timing is critical as browsers - especially Safari - tend to ignore this request
+              // unless it's sent late in the intialization process.
+              // If browsers ignore the request, the result is redundant captions
+              thisObj.setMediaAttributes();
+              thisObj.addControls();
+              thisObj.addEventListeners();
+
+              // inject each of the hidden forms that will be accessed from the Preferences popup menu
+              prefsGroups = thisObj.getPreferencesGroups();
+              for (i = 0; i < prefsGroups.length; i++) {
+							  thisObj.injectPrefsForm(prefsGroups[i]);
+				      }
+              thisObj.setupPopups();
+              thisObj.updateCaption();
+              thisObj.injectVTS();
+              if (thisObj.chaptersDivLocation) {
+							  thisObj.populateChaptersDiv();
+				      }
+              thisObj.showSearchResults();
+
+              // Go ahead and load media, without user requesting it
+              // Ideally, we would wait until user clicks play, rather than unnecessarily consume their bandwidth
+              // However, the media needs to load before the 'loadedmetadata' event is fired
+              // and until that happens we can't get the media's duration
+              if (thisObj.player === 'html5') {
+							  thisObj.$media[0].load();
+						  }
+              // refreshControls is called twice building/initializing the player
+              // this is the second. Best to pause a bit before executing, to be sure all prior steps are complete
+              setTimeout(function() {
+							  thisObj.refreshControls('init');
+						  },100);
+            });
 					},
 					function() {	 // initPlayer fail
 						thisObj.provideFallback();
@@ -637,7 +644,6 @@
 
 		var thisObj = this;
 		var playerPromise;
-
 		// First run player specific initialization.
 		if (this.player === 'html5') {
 			playerPromise = this.initHtml5Player();
@@ -648,13 +654,21 @@
 		else if (this.player === 'vimeo') {
 			playerPromise = this.initVimeoPlayer();
 		}
-
 		// After player specific initialization is done, run remaining general initialization.
 		var deferred = new $.Deferred();
 		var promise = deferred.promise();
 		playerPromise.done(
 			function () { // done/resolved
-				if (thisObj.useFixedSeekInterval === false) {
+				if (thisObj.useFixedSeekInterval) {
+  				if (!thisObj.seekInterval) {
+            thisObj.seekInterval = thisObj.defaultSeekInterval;
+          }
+          else {
+            // fixed seekInterval was already assigned, using value of data-seek-interval attribute
+          }
+          thisObj.seekIntervalCalculated = true;
+        }
+        else {
 					thisObj.setSeekInterval();
 				}
 				deferred.resolve();
@@ -675,7 +689,6 @@
 		var thisObj, duration;
 		thisObj = this;
 		this.seekInterval = this.defaultSeekInterval;
-
 		if (this.useChapterTimes) {
 			duration = this.chapterDuration;
 		}
@@ -713,7 +726,6 @@
 		var captions, i;
 
 		captions = this.captions;
-
 		if (captions.length > 0) {
 			for (i=0; i<captions.length; i++) {
 				if (captions[i].def === true) {
@@ -745,7 +757,40 @@
 				// sync all other tracks to this same languge
 				this.syncTrackLanguages('init',this.captionLang);
 			}
-		}
+      if (this.player === 'vimeo') {
+  			if (this.usingVimeoCaptions && this.prefCaptions == 1) {
+      			// initialize Vimeo captions to the default language
+            this.vimeoPlayer.enableTextTrack(this.captionLang).then(function(track) {
+	  				  // track.language = the iso code for the language
+              // track.kind = 'captions' or 'subtitles'
+              // track.label = the human-readable label
+				    }).catch(function(error) {
+					    switch (error.name) {
+						    case 'InvalidTrackLanguageError':
+							    // no track was available with the specified language
+                  console.log('No ' + track.kind + ' track is available in the specified language (' + track.label + ')');
+                  break;
+                case 'InvalidTrackError':
+							    // no track was available with the specified language and kind
+                  console.log('No ' + track.kind + ' track is available in the specified language (' + track.label + ')');
+                  break;
+                default:
+							    // some other error occurred
+                  console.log('Error loading ' + track.label + ' ' + track.kind + ' track');
+                  break;
+    		      }
+				    });
+			    }
+          else {
+  			    // disable Vimeo captions.
+            this.vimeoPlayer.disableTextTrack().then(function() {
+    			    // Vimeo captions disabled
+  			    }).catch(function(error) {
+              console.log('Error disabling Vimeo text track: ',error);
+            });
+			    }
+        }
+    }
 	};
 
 	AblePlayer.prototype.initHtml5Player = function () {
